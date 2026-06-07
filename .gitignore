@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+__exam_slayer__/
+__exam_slayer*/
+*.zip
+.env
+.venv/
+venv/
+

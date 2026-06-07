@@ -1,0 +1,4 @@
+display_name: Exam Slayer
+short_description: Build high-yield Exam Slayer packs from past papers and course materials.
+default_prompt: Analyze my course materials and past papers, find high-frequency exam topics, and create a time-boxed Exam Slayer plan.
+
