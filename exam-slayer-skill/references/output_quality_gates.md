@@ -22,6 +22,8 @@ Use this checklist before delivering a substantial Exam Slayer pack.
 - It starts with what to do first.
 - It contains fast-review artifacts: formulas, definitions, templates, pitfalls, or flashcards.
 - Practice questions map back to high-priority topics.
+- LaTeX formulas render cleanly. Long formulas use standalone `$$...$$` blocks with blank lines around them.
+- No generated Markdown contains unmatched `$`, `$$`, `\(`, `\)`, `\[`, or `\]` delimiters. Run `scripts/validate_latex_markdown.py` when scripts are available.
 
 ## Subject Fit
 
@@ -39,4 +41,3 @@ Include a risk report when:
 - Answer keys conflict.
 - The syllabus is missing.
 - The user asks for prediction-level guidance.
-

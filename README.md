@@ -92,6 +92,7 @@ __exam_slayer__/
 ├── practice_answers.md           练习题答案与采分点
 ├── flashcards.csv                闪卡
 ├── risk_report.md                风险报告
+├── latex_validation_report.md    LaTeX 渲染检查报告
 └── extracted_text/
     ├── ingest_summary.md         材料摄取报告
     └── needs_visual_review.md    需要视觉/OCR 复核的文件
@@ -133,6 +134,20 @@ $$
 
 对于从 PDF 图片或扫描件里识别出的公式，如果模型不确定，应标记为 `待核对`，不要把 OCR 结果当成确定答案。
 
+如果公式在 Markdown 里原样显示，通常是 `$...$` 或 `$$...$$` 没有正确闭合。长公式建议全部使用独立块：
+
+```markdown
+$$
+(\eta_1, \eta_2, \cdots, \eta_n)x = \alpha
+$$
+```
+
+一键流水线会自动生成 `latex_validation_report.md`。也可以单独检查：
+
+```bash
+python3 exam-slayer-skill/scripts/validate_latex_markdown.py "/path/to/materials/__exam_slayer__"
+```
+
 ## 项目结构
 
 ```text
@@ -147,6 +162,7 @@ exam-slayer-skill/
     ├── ingest_materials.py
     ├── analyze_exam_frequency.py
     ├── build_slayer_pack.py
+    ├── validate_latex_markdown.py
     └── run_exam_slayer.py
 ```
 

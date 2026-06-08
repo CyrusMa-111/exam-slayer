@@ -56,6 +56,7 @@ def main() -> int:
         "--target",
         args.target,
     ])
+    run([sys.executable, str(SCRIPT_DIR / "validate_latex_markdown.py"), str(out_dir)])
 
     print(f"[OK] Complete Exam Slayer pack: {out_dir}")
     return 0

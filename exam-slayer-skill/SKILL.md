@@ -163,7 +163,14 @@ For answer-heavy subjects, include scoring points. For calculation subjects, inc
 
 Use these conventions in generated study materials:
 
-- Inline formula: `$P(A \mid B)$`
+- Prefer display math for any formula longer than a few symbols. Inline math is allowed only for very short symbols or expressions such as `$x$` or `$P(A \mid B)$`.
+- Long formulas, vectors, matrices, derivations, constraints, substitutions, and multi-symbol equations must be placed in a display block with blank lines before and after:
+  ```markdown
+  $$
+  (\eta_1, \eta_2, \cdots, \eta_n)x = \alpha
+  $$
+  ```
+- Never start an inline formula with `$` unless the matching closing `$` is on the same line. A broken fragment such as `$(\eta_1,\eta_2,\cdots` is invalid and will render as raw text.
 - Display formula:
   ```markdown
   $$
@@ -179,6 +186,8 @@ Use these conventions in generated study materials:
   ```
 - If a formula is uncertain because it came from OCR or visual recognition, mark it as `待核对`.
 - Do not flatten math into plain text such as `sum p log p` when LaTeX is possible.
+- Before delivering generated Markdown, run a quick LaTeX sanity pass: every `$`, `$$`, `\(`, `\)`, `\[`, and `\]` delimiter must be paired; do not leave raw LaTeX fragments outside math delimiters.
+- If using the scripts, run `python3 scripts/validate_latex_markdown.py "<materials_dir>/__exam_slayer__"` after building the pack. Fix any reported delimiter issues before giving the files to the user.
 
 ## Subject-Agnostic Handling
 
@@ -202,6 +211,7 @@ Before final delivery, check:
 - The plan matches the user's time budget.
 - Low-confidence content is labeled instead of presented as fact.
 - Practice questions map to the ranked topics.
+- LaTeX formulas render cleanly: no unmatched `$...$`, `$$...$$`, `\(...\)`, or `\[...\]` delimiters; long formulas use display math.
 - No course-specific hardcoding remains unless it came from the user's materials.
 
 For a fuller checklist, read `references/output_quality_gates.md` when preparing a substantial deliverable.

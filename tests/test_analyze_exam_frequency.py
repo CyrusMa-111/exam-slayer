@@ -22,6 +22,7 @@ def load_script(name: str):
 
 analyzer = load_script("analyze_exam_frequency")
 builder = load_script("build_slayer_pack")
+latex_validator = load_script("validate_latex_markdown")
 
 
 class AnalyzeExamFrequencyTests(unittest.TestCase):
@@ -102,6 +103,30 @@ class AnalyzeExamFrequencyTests(unittest.TestCase):
             self.assertTrue((out_dir / "slayer_plan.md").exists())
             self.assertTrue((out_dir / "quick_review.md").exists())
             self.assertTrue((out_dir / "practice_answers.md").exists())
+
+    def test_latex_validator_flags_unclosed_inline_math(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "quick_review.md"
+            path.write_text("错误公式：$(\\eta_1,\\eta_2,\\cdots,\\eta_n)x=\\alpha(\n", encoding="utf-8")
+
+            issues = latex_validator.validate_file(path, root)
+
+        self.assertEqual(len(issues), 1)
+        self.assertIn("inline math", issues[0].message)
+
+    def test_latex_validator_accepts_display_math(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "quick_review.md"
+            path.write_text(
+                "正确公式：\n\n$$\n(\\eta_1, \\eta_2, \\cdots, \\eta_n)x = \\alpha\n$$\n",
+                encoding="utf-8",
+            )
+
+            issues = latex_validator.validate_file(path, root)
+
+        self.assertEqual(issues, [])
 
 
 if __name__ == "__main__":
