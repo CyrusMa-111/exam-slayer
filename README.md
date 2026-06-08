@@ -50,6 +50,12 @@ exam-slayer
 python3 exam-slayer-skill/scripts/run_exam_slayer.py "/path/to/materials" --time-budget "1 day" --target pass
 ```
 
+如果 PDF 里有大量公式、图表、图标、曲线，建议强制渲染 PDF 页面，方便多模态模型后续复核：
+
+```bash
+python3 exam-slayer-skill/scripts/run_exam_slayer.py "/path/to/materials" --time-budget "1 day" --target pass --render-pdf-pages always
+```
+
 参数：
 
 ```text
@@ -102,6 +108,14 @@ __exam_slayer__/extracted_text/needs_visual_review.md
 
 如果当前模型支持视觉，可以根据这份清单补充识别；如果是纯文本模型，需要安装 OCR 工具或提供文字版材料。
 
+当启用 PDF 页面渲染后，页面图片会放在：
+
+```text
+__exam_slayer__/extracted_text/visual_assets/
+```
+
+这些图片用于复核普通文本抽取容易漏掉的内容，比如公式、变量含义、坐标轴、趋势、图表结论、图标结构和曲线形状。
+
 ## 项目结构
 
 ```text
@@ -128,4 +142,3 @@ exam-slayer-skill/
 - 更准确的中文考点抽取
 - 更好的模拟卷生成
 - Anki/Quizlet 导出
-

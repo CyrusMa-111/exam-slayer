@@ -23,6 +23,8 @@ def main() -> int:
     parser.add_argument("--out", default=None, help="Output directory. Defaults to <materials_dir>/__exam_slayer__.")
     parser.add_argument("--time-budget", default="1 day", help="2 hours, 1 day, 3 days, or 1 week.")
     parser.add_argument("--target", default="pass", choices=["pass", "good", "high"], help="Target score strategy.")
+    parser.add_argument("--render-pdf-pages", choices=["auto", "always", "never"], default="auto", help="Render PDF pages to PNG for vision review. Use always for formula/chart-heavy PDFs.")
+    parser.add_argument("--max-rendered-pages", type=int, default=30, help="Maximum PDF pages to render per file.")
     args = parser.parse_args()
 
     root = Path(args.materials_dir).resolve()
@@ -31,7 +33,17 @@ def main() -> int:
     out_dir = Path(args.out).resolve() if args.out else root / "__exam_slayer__"
     extracted_dir = out_dir / "extracted_text"
 
-    run([sys.executable, str(SCRIPT_DIR / "ingest_materials.py"), str(root), "--out", str(extracted_dir)])
+    run([
+        sys.executable,
+        str(SCRIPT_DIR / "ingest_materials.py"),
+        str(root),
+        "--out",
+        str(extracted_dir),
+        "--render-pdf-pages",
+        args.render_pdf_pages,
+        "--max-rendered-pages",
+        str(args.max_rendered_pages),
+    ])
     run([sys.executable, str(SCRIPT_DIR / "analyze_exam_frequency.py"), str(extracted_dir), "--out", str(out_dir)])
     run([
         sys.executable,
@@ -51,4 +63,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

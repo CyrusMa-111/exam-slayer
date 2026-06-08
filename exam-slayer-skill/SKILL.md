@@ -34,6 +34,12 @@ Default to the one-command pipeline when the user provides a folder of mixed mat
 python3 scripts/run_exam_slayer.py "<materials_dir>" --time-budget "1 day" --target "pass"
 ```
 
+For formula/chart-heavy PDFs, force page rendering so a vision-capable model can review diagrams:
+
+```bash
+python3 scripts/run_exam_slayer.py "<materials_dir>" --time-budget "1 day" --target "pass" --render-pdf-pages always
+```
+
 This pipeline:
 1. Detects usable files in the folder.
 2. Extracts text from supported formats.
@@ -54,7 +60,9 @@ Layer 2: local OCR
 
 Layer 3: vision-capable model review
 - If the current model/tooling can inspect images or PDF pages, use it for files listed in `needs_visual_review.md`.
+- For PDF files that failed text extraction or contain important formulas/figures, inspect rendered page images under `__exam_slayer__/extracted_text/visual_assets/`.
 - Transcribe or summarize exam-relevant content into `__exam_slayer__/extracted_text/`, then rerun the analysis and Exam Slayer scripts.
+- For formulas and charts, capture meaning, variables, axes, trends, conclusions, and likely question forms; do not rely on plain OCR text alone.
 
 Text-only model fallback:
 - If the active model cannot inspect images/PDF pages visually, do not claim those files were understood.
@@ -66,7 +74,7 @@ Supported direct inputs:
 - PDF: `.pdf`
 - Images/OCR when local OCR tools exist: `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.bmp`, `.webp`
 
-PDF and image extraction depends on local tools and/or vision-capable models. If a scanned PDF, image, formula-heavy page, or complex slide cannot be read, report the file in `ingest_summary.md` and `needs_visual_review.md`. Do not pretend unreadable files were analyzed.
+PDF and image extraction depends on local tools and/or vision-capable models. Text-layer extraction often misses formulas, icons, diagrams, charts, and curves. If a scanned PDF, image, formula-heavy page, or complex slide cannot be read, report the file in `ingest_summary.md` and `needs_visual_review.md`. Do not pretend unreadable visual content was analyzed.
 
 Use step-by-step scripts only when debugging or when the user asks for manual control:
 
@@ -132,6 +140,7 @@ Default language: Chinese. If course materials are English, keep technical terms
 Recommended artifacts:
 - `ingest_summary.md`: what files were recognized, extracted, skipped, or failed.
 - `needs_visual_review.md`: files that need OCR, visual model review, or manual text export.
+- `extracted_text/visual_assets/`: rendered PDF page images for formula/chart/diagram review when enabled.
 - `slayer_plan.md`: time-boxed plan with what to study first.
 - `high_frequency_topics.md`: ranked high-yield concepts with evidence.
 - `quick_review.md`: compact notes, formulas, definitions, and answer templates.

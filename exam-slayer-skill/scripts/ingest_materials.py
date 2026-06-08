@@ -34,6 +34,8 @@ SKIP_DIRS = {"__MACOSX", ".git", "node_modules", "__pycache__"}
 KIND_LABELS = {"text": "文本", "docx": "Word 文档", "pptx": "PPT 课件", "pdf": "PDF", "image": "图片", "unsupported": "不支持"}
 STATUS_LABELS = {"ok": "成功", "skipped": "跳过", "failed": "失败", "empty": "空文本"}
 QUALITY_LABELS = {"ok": "正常", "missing": "未抽取", "suspect": "疑似乱码", "thin": "内容过少", "ocr": "OCR 待核对", "unknown": "未知"}
+PDF_VISUAL_RENDER_DPI = 160
+DEFAULT_MAX_RENDERED_PAGES = 30
 
 
 def looks_garbled(text: str) -> bool:
@@ -192,6 +194,50 @@ def extract_pdf(path: Path) -> str:
     return ""
 
 
+def count_pdf_pages(path: Path) -> int | None:
+    try:
+        import fitz  # type: ignore
+    except Exception:
+        return None
+    try:
+        doc = fitz.open(path)
+        count = len(doc)
+        doc.close()
+        return count
+    except Exception:
+        return None
+
+
+def render_pdf_pages(path: Path, out_dir: Path, max_pages: int = DEFAULT_MAX_RENDERED_PAGES) -> list[str]:
+    """Render PDF pages to PNG files for vision-model review.
+
+    Returns paths relative to out_dir. Requires PyMuPDF. If unavailable, returns
+    an empty list. This is not OCR; it creates visual assets for later review.
+    """
+    try:
+        import fitz  # type: ignore
+    except Exception:
+        return []
+
+    visual_root = out_dir / "visual_assets" / safe_stem(path)
+    visual_root.mkdir(parents=True, exist_ok=True)
+    rendered: list[str] = []
+    doc = fitz.open(path)
+    zoom = PDF_VISUAL_RENDER_DPI / 72
+    matrix = fitz.Matrix(zoom, zoom)
+    try:
+        for index, page in enumerate(doc, 1):
+            if index > max_pages:
+                break
+            pix = page.get_pixmap(matrix=matrix, alpha=False)
+            image_path = visual_root / f"page_{index:03d}.png"
+            pix.save(image_path)
+            rendered.append(str(image_path.relative_to(out_dir)))
+    finally:
+        doc.close()
+    return rendered
+
+
 def extract_image(path: Path) -> str:
     try:
         import pytesseract  # type: ignore
@@ -249,9 +295,25 @@ def iter_material_files(root: Path):
         yield path
 
 
-def ingest(root: Path, out_dir: Path) -> dict:
+def should_render_visual_pages(kind: str, quality: str, render_mode: str) -> bool:
+    if kind != "pdf":
+        return False
+    if render_mode == "never":
+        return False
+    if render_mode == "always":
+        return True
+    return quality in {"missing", "thin", "suspect"}
+
+
+def ingest(root: Path, out_dir: Path, render_pdf_pages_mode: str = "auto", max_rendered_pages: int = DEFAULT_MAX_RENDERED_PAGES) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
-    manifest = {"root": str(root), "output_dir": str(out_dir), "files": []}
+    manifest = {
+        "root": str(root),
+        "output_dir": str(out_dir),
+        "render_pdf_pages": render_pdf_pages_mode,
+        "max_rendered_pages": max_rendered_pages,
+        "files": [],
+    }
     used_names: dict[str, int] = {}
 
     for path in iter_material_files(root):
@@ -266,6 +328,8 @@ def ingest(root: Path, out_dir: Path) -> dict:
             "quality": "unknown",
             "needs_visual_review": False,
             "visual_reason": "",
+            "visual_assets": [],
+            "page_count": None,
         }
         if kind == "unsupported":
             record["reason"] = f"暂不支持的扩展名：{path.suffix}"
@@ -285,6 +349,17 @@ def ingest(root: Path, out_dir: Path) -> dict:
         record["quality"] = quality
         record["needs_visual_review"] = needs_visual_review
         record["visual_reason"] = visual_reason
+        if kind == "pdf":
+            record["page_count"] = count_pdf_pages(path)
+            if should_render_visual_pages(kind, quality, render_pdf_pages_mode):
+                assets = render_pdf_pages(path, out_dir, max_rendered_pages)
+                record["visual_assets"] = assets
+                if assets:
+                    record["needs_visual_review"] = True
+                    reason = "已将 PDF 页面渲染为图片，供多模态模型复核公式、图表、图标和复杂版式。"
+                    record["visual_reason"] = f"{visual_reason} {reason}".strip()
+                elif render_pdf_pages_mode in {"auto", "always"} and quality in {"missing", "thin", "suspect"}:
+                    record["visual_reason"] = f"{visual_reason} 未能渲染 PDF 页面；请安装 PyMuPDF 或手动提供页面截图。".strip()
         if not text:
             record["status"] = "empty"
             record["reason"] = visual_reason or "没有抽取到文字。"
@@ -305,14 +380,16 @@ def ingest(root: Path, out_dir: Path) -> dict:
 
 
 def write_summary(manifest: dict, out_dir: Path) -> None:
-    lines = ["# 材料摄取报告", "", "| 文件 | 类型 | 状态 | 质量 | 需要视觉复核 | 字符数 | 输出/原因 |", "|------|------|------|------|--------------|--------|-----------|"]
+    lines = ["# 材料摄取报告", "", "| 文件 | 类型 | 状态 | 质量 | 需要视觉复核 | 字符数 | 视觉资产 | 输出/原因 |", "|------|------|------|------|--------------|--------|----------|-----------|"]
     for item in manifest["files"]:
         detail = item.get("output") or item.get("reason") or ""
         visual = "是" if item.get("needs_visual_review") else ""
+        visual_assets = len(item.get("visual_assets") or [])
+        visual_asset_label = f"{visual_assets} 页" if visual_assets else ""
         kind = KIND_LABELS.get(item["kind"], item["kind"])
         status = STATUS_LABELS.get(item["status"], item["status"])
         quality = QUALITY_LABELS.get(item.get("quality", ""), item.get("quality", ""))
-        lines.append(f"| {item['path']} | {kind} | {status} | {quality} | {visual} | {item['chars']} | {detail} |")
+        lines.append(f"| {item['path']} | {kind} | {status} | {quality} | {visual} | {item['chars']} | {visual_asset_label} | {detail} |")
     (out_dir / "ingest_summary.md").write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -327,17 +404,22 @@ def write_visual_review_queue(manifest: dict, out_dir: Path) -> None:
     if not items:
         lines.append("没有文件被标记为需要视觉复核。")
     else:
-        lines.extend(["| 文件 | 类型 | 状态 | 质量 | 原因 |", "|------|------|------|------|------|"])
+        lines.extend(["| 文件 | 类型 | 状态 | 质量 | 视觉资产 | 原因 |", "|------|------|------|------|----------|------|"])
         for item in items:
             reason = item.get("visual_reason") or item.get("reason") or ""
             kind = KIND_LABELS.get(item["kind"], item["kind"])
             status = STATUS_LABELS.get(item["status"], item["status"])
             quality = QUALITY_LABELS.get(item.get("quality", ""), item.get("quality", ""))
-            lines.append(f"| {item['path']} | {kind} | {status} | {quality} | {reason} |")
+            assets = item.get("visual_assets") or []
+            asset_text = ", ".join(assets[:3])
+            if len(assets) > 3:
+                asset_text += f" ... 共 {len(assets)} 页"
+            lines.append(f"| {item['path']} | {kind} | {status} | {quality} | {asset_text} | {reason} |")
         lines.extend([
             "",
             "建议处理方式：",
-            "- 如果当前模型可以看图片/PDF 页面，请打开原文件，把考试相关文字转写或总结到 `extracted_text/`。",
+            "- 如果当前模型可以看图片/PDF 页面，请优先查看 `visual_assets/` 中的页面图，补充公式、图表、图标、流程图和复杂版式内容。",
+            "- 对公式和图表，不要只转写散乱文字；请总结其含义、变量、坐标轴、趋势、结论和可能考法。",
             "- 如果当前模型是纯文本模型，请安装 Tesseract 等 OCR 工具，或提供文字版材料。",
             "- 补充恢复文本后，重新运行 `analyze_exam_frequency.py` 和 `build_slayer_pack.py`。",
         ])
@@ -348,6 +430,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Extract text from mixed exam material folders.")
     parser.add_argument("materials_dir", help="Folder containing any mix of exam materials.")
     parser.add_argument("--out", default=None, help="Output text directory. Defaults to <materials_dir>/__exam_slayer__/extracted_text.")
+    parser.add_argument("--render-pdf-pages", choices=["auto", "always", "never"], default="auto", help="Render PDF pages to PNG for vision review. auto renders failed/thin/garbled PDFs.")
+    parser.add_argument("--max-rendered-pages", type=int, default=DEFAULT_MAX_RENDERED_PAGES, help="Maximum PDF pages to render per file when visual rendering is enabled.")
     args = parser.parse_args()
 
     root = Path(args.materials_dir).resolve()
@@ -355,7 +439,7 @@ def main() -> int:
         raise SystemExit(f"Directory not found: {root}")
     out_dir = Path(args.out).resolve() if args.out else root / "__exam_slayer__" / "extracted_text"
 
-    manifest = ingest(root, out_dir)
+    manifest = ingest(root, out_dir, args.render_pdf_pages, args.max_rendered_pages)
     write_summary(manifest, out_dir)
     write_visual_review_queue(manifest, out_dir)
     ok = sum(1 for f in manifest["files"] if f["status"] == "ok")
