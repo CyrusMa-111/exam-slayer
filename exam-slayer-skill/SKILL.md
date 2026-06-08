@@ -18,6 +18,7 @@ Core commitments:
 - Evidence-based: mark source files, years, confidence, and conflicts.
 - Output-focused: produce concise review artifacts students can actually use before an exam.
 - Chinese-first output: unless the user explicitly asks for English, write generated study plans, headings, explanations, answer templates, and reports in Chinese. Keep unavoidable source terms or technical terms in their original language when useful.
+- LaTeX math output: when formulas, derivations, equations, symbols, or calculation templates are present, write them in Markdown-compatible LaTeX. Use inline math `$...$` for short formulas and display math `$$...$$` for standalone equations.
 
 ## Quick Workflow
 
@@ -63,6 +64,14 @@ Layer 3: vision-capable model review
 - For PDF files that failed text extraction or contain important formulas/figures, inspect rendered page images under `__exam_slayer__/extracted_text/visual_assets/`.
 - Transcribe or summarize exam-relevant content into `__exam_slayer__/extracted_text/`, then rerun the analysis and Exam Slayer scripts.
 - For formulas and charts, capture meaning, variables, axes, trends, conclusions, and likely question forms; do not rely on plain OCR text alone.
+- For every recovered formula, output LaTeX plus variable meanings. Example:
+  ```markdown
+  $$
+  H(X) = -\sum_i p_i \log_2 p_i
+  $$
+  - $p_i$：第 $i$ 类的概率
+  - 常见考法：给定类别比例，计算熵或信息增益
+  ```
 
 Text-only model fallback:
 - If the active model cannot inspect images/PDF pages visually, do not claim those files were understood.
@@ -149,6 +158,27 @@ Recommended artifacts:
 - `risk_report.md`: missing sources, low-confidence answers, conflicts, likely gaps.
 
 For answer-heavy subjects, include scoring points. For calculation subjects, include formula selection, common traps, and worked templates. For programming subjects, include pattern recognition, code tracing, complexity, and common implementation skeletons.
+
+## LaTeX Rules
+
+Use these conventions in generated study materials:
+
+- Inline formula: `$P(A \mid B)$`
+- Display formula:
+  ```markdown
+  $$
+  \mathrm{Score}(x) = P(x) \prod_i P(a_i \mid x)
+  $$
+  ```
+- Variables and symbols must be explained immediately below the formula.
+- For step-by-step calculations, keep each substitution in LaTeX:
+  ```markdown
+  $$
+  H(D) = -\frac{4}{9}\log_2\frac{4}{9} - \frac{5}{9}\log_2\frac{5}{9}
+  $$
+  ```
+- If a formula is uncertain because it came from OCR or visual recognition, mark it as `待核对`.
+- Do not flatten math into plain text such as `sum p log p` when LaTeX is possible.
 
 ## Subject-Agnostic Handling
 

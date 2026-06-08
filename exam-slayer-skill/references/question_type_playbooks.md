@@ -30,8 +30,31 @@ For essay-like questions:
 For calculation-heavy courses:
 - Build a formula trigger table: when to use which formula.
 - Show known quantities, unknown quantity, formula, substitution, result, and unit.
+- Write formulas and substitutions in Markdown-compatible LaTeX.
 - Include common traps: sign direction, denominator choice, compounding period, rounding, assumptions.
 - Practice should prioritize repeated problem templates over random numbers.
+
+Recommended LaTeX structure:
+
+```markdown
+### 公式触发
+
+看到“信息增益 / entropy / purity”时，先写：
+
+$$
+H(D) = -\sum_{k=1}^{K} p_k \log_2 p_k
+$$
+
+- $D$：当前数据集
+- $p_k$：第 $k$ 类样本占比
+- $K$：类别数
+
+### 代入模板
+
+$$
+H(D) = -\frac{4}{9}\log_2\frac{4}{9} - \frac{5}{9}\log_2\frac{5}{9}
+$$
+```
 
 ## Proof / Derivation
 
@@ -39,6 +62,7 @@ For proof-based courses:
 - Extract theorem names and repeated proof patterns.
 - Provide proof skeletons: assumptions, goal, key lemma, transformation, conclusion.
 - Separate "must memorize" from "can reconstruct".
+- Use LaTeX for all symbolic transformations.
 
 ## Programming / CS
 
@@ -61,4 +85,3 @@ For closed-book exams:
 - Prioritize memory compression.
 - Produce flashcards, mnemonics, formula sheets, and answer skeletons.
 - Keep notes compact enough for repeated review.
-
