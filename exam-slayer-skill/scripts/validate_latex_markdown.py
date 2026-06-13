@@ -8,14 +8,9 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from output_names import LATEX_VALIDATION_REPORT_MD, PACK_MARKDOWN_FILES
 
-DEFAULT_FILES = {
-    "quick_review.md",
-    "practice_answers.md",
-    "practice_set.md",
-    "slayer_plan.md",
-    "high_frequency_topics.md",
-}
+DEFAULT_FILES = PACK_MARKDOWN_FILES
 
 
 @dataclass
@@ -92,7 +87,7 @@ def write_report(root: Path, issues: list[Issue]) -> None:
         for issue in issues:
             text = issue.text.replace("|", "\\|")
             lines.append(f"| {issue.path} | {issue.line} | {issue.message} | `{text}` |")
-    (root / "latex_validation_report.md").write_text("\n".join(lines), encoding="utf-8")
+    (root / LATEX_VALIDATION_REPORT_MD).write_text("\n".join(lines), encoding="utf-8")
 
 
 def main() -> int:
@@ -111,7 +106,7 @@ def main() -> int:
     write_report(report_root, issues)
 
     if issues:
-        print(f"[WARN] Found {len(issues)} LaTeX delimiter issues; see {report_root / 'latex_validation_report.md'}")
+        print(f"[WARN] Found {len(issues)} LaTeX delimiter issues; see {report_root / LATEX_VALIDATION_REPORT_MD}")
         return 1
     print(f"[OK] LaTeX delimiter check passed: {report_root}")
     return 0

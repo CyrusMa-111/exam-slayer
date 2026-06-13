@@ -24,6 +24,15 @@ import zipfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+from output_names import (
+    INGEST_MANIFEST_JSON,
+    INGEST_SUMMARY_MD,
+    OUTPUT_DIR_NAME,
+    VISUAL_ASSETS_DIR,
+    VISUAL_REVIEW_MD,
+    EXTRACTED_TEXT_DIR,
+)
+
 
 TEXT_EXTENSIONS = {".txt", ".md", ".markdown", ".csv", ".tsv", ".log"}
 DOCX_EXTENSIONS = {".docx"}
@@ -219,7 +228,7 @@ def render_pdf_pages(path: Path, out_dir: Path, max_pages: int = DEFAULT_MAX_REN
     except Exception:
         return []
 
-    visual_root = out_dir / "visual_assets" / safe_stem(path)
+    visual_root = out_dir / VISUAL_ASSETS_DIR / safe_stem(path)
     visual_root.mkdir(parents=True, exist_ok=True)
     rendered: list[str] = []
     doc = fitz.open(path)
@@ -375,7 +384,7 @@ def ingest(root: Path, out_dir: Path, render_pdf_pages_mode: str = "auto", max_r
         record.update({"status": "ok", "chars": len(text), "output": str(out_path.name)})
         manifest["files"].append(record)
 
-    (out_dir / "ingest_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (out_dir / INGEST_MANIFEST_JSON).write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return manifest
 
 
@@ -390,7 +399,7 @@ def write_summary(manifest: dict, out_dir: Path) -> None:
         status = STATUS_LABELS.get(item["status"], item["status"])
         quality = QUALITY_LABELS.get(item.get("quality", ""), item.get("quality", ""))
         lines.append(f"| {item['path']} | {kind} | {status} | {quality} | {visual} | {item['chars']} | {visual_asset_label} | {detail} |")
-    (out_dir / "ingest_summary.md").write_text("\n".join(lines), encoding="utf-8")
+    (out_dir / INGEST_SUMMARY_MD).write_text("\n".join(lines), encoding="utf-8")
 
 
 def write_visual_review_queue(manifest: dict, out_dir: Path) -> None:
@@ -418,18 +427,18 @@ def write_visual_review_queue(manifest: dict, out_dir: Path) -> None:
         lines.extend([
             "",
             "建议处理方式：",
-            "- 如果当前模型可以看图片/PDF 页面，请优先查看 `visual_assets/` 中的页面图，补充公式、图表、图标、流程图和复杂版式内容。",
+            f"- 如果当前模型可以看图片/PDF 页面，请优先查看 `{VISUAL_ASSETS_DIR}/` 中的页面图，补充公式、图表、图标、流程图和复杂版式内容。",
             "- 对公式和图表，不要只转写散乱文字；请总结其含义、变量、坐标轴、趋势、结论和可能考法。",
             "- 如果当前模型是纯文本模型，请安装 Tesseract 等 OCR 工具，或提供文字版材料。",
             "- 补充恢复文本后，重新运行 `analyze_exam_frequency.py` 和 `build_slayer_pack.py`。",
         ])
-    (out_dir / "needs_visual_review.md").write_text("\n".join(lines), encoding="utf-8")
+    (out_dir / VISUAL_REVIEW_MD).write_text("\n".join(lines), encoding="utf-8")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Extract text from mixed exam material folders.")
     parser.add_argument("materials_dir", help="Folder containing any mix of exam materials.")
-    parser.add_argument("--out", default=None, help="Output text directory. Defaults to <materials_dir>/__exam_slayer__/extracted_text.")
+    parser.add_argument("--out", default=None, help=f"Output text directory. Defaults to <materials_dir>/{OUTPUT_DIR_NAME}/{EXTRACTED_TEXT_DIR}.")
     parser.add_argument("--render-pdf-pages", choices=["auto", "always", "never"], default="auto", help="Render PDF pages to PNG for vision review. auto renders failed/thin/garbled PDFs.")
     parser.add_argument("--max-rendered-pages", type=int, default=DEFAULT_MAX_RENDERED_PAGES, help="Maximum PDF pages to render per file when visual rendering is enabled.")
     args = parser.parse_args()
@@ -437,7 +446,7 @@ def main() -> int:
     root = Path(args.materials_dir).resolve()
     if not root.is_dir():
         raise SystemExit(f"Directory not found: {root}")
-    out_dir = Path(args.out).resolve() if args.out else root / "__exam_slayer__" / "extracted_text"
+    out_dir = Path(args.out).resolve() if args.out else root / OUTPUT_DIR_NAME / EXTRACTED_TEXT_DIR
 
     manifest = ingest(root, out_dir, args.render_pdf_pages, args.max_rendered_pages)
     write_summary(manifest, out_dir)
@@ -447,12 +456,12 @@ def main() -> int:
     skipped = sum(1 for f in manifest["files"] if f["status"] == "skipped")
     print(f"[OK] Extracted {ok} files to {out_dir}")
     if failed:
-        print(f"[WARN] {failed} files had no extracted text or failed; see ingest_summary.md")
+        print(f"[WARN] {failed} files had no extracted text or failed; see {INGEST_SUMMARY_MD}")
     visual = sum(1 for f in manifest["files"] if f.get("needs_visual_review"))
     if visual:
-        print(f"[WARN] {visual} files need visual/OCR review; see needs_visual_review.md")
+        print(f"[WARN] {visual} files need visual/OCR review; see {VISUAL_REVIEW_MD}")
     if skipped:
-        print(f"[INFO] {skipped} unsupported files skipped; see ingest_summary.md")
+        print(f"[INFO] {skipped} unsupported files skipped; see {INGEST_SUMMARY_MD}")
     return 0
 
 

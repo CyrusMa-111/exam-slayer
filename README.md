@@ -85,17 +85,17 @@ materials/
 
 ```text
 __exam_slayer__/
-├── slayer_plan.md                期末突击复习计划
-├── high_frequency_topics.md      高频考点报告
-├── quick_review.md               考前速记稿
-├── practice_set.md               针对性练习题
-├── practice_answers.md           练习题答案与采分点
-├── flashcards.csv                闪卡
-├── risk_report.md                风险报告
-├── latex_validation_report.md    LaTeX 渲染检查报告
-└── extracted_text/
-    ├── ingest_summary.md         材料摄取报告
-    └── needs_visual_review.md    需要视觉/OCR 复核的文件
+├── 期末突击复习计划.md
+├── 高频考点报告.md
+├── 考前速记稿.md
+├── 针对性练习题.md
+├── 练习题答案与采分点.md
+├── 闪卡.csv
+├── 风险报告.md
+├── LaTeX渲染检查报告.md
+└── 提取文本/
+    ├── 材料摄取报告.md
+    └── 需要视觉OCR复核.md
 ```
 
 ## 关于图片和扫描 PDF
@@ -105,7 +105,7 @@ __exam_slayer__/
 图片、扫描版 PDF、复杂版式、公式截图的准确性取决于 OCR 或多模态模型能力。如果某些文件抽取失败或抽取质量低，会写入：
 
 ```text
-__exam_slayer__/extracted_text/needs_visual_review.md
+__exam_slayer__/提取文本/需要视觉OCR复核.md
 ```
 
 如果当前模型支持视觉，可以根据这份清单补充识别；如果是纯文本模型，需要安装 OCR 工具或提供文字版材料。
@@ -113,7 +113,7 @@ __exam_slayer__/extracted_text/needs_visual_review.md
 当启用 PDF 页面渲染后，页面图片会放在：
 
 ```text
-__exam_slayer__/extracted_text/visual_assets/
+__exam_slayer__/提取文本/视觉复核图片/
 ```
 
 这些图片用于复核普通文本抽取容易漏掉的内容，比如公式、变量含义、坐标轴、趋势、图表结论、图标结构和曲线形状。
@@ -142,7 +142,7 @@ $$
 $$
 ```
 
-一键流水线会自动生成 `latex_validation_report.md`。也可以单独检查：
+一键流水线会自动生成 `LaTeX渲染检查报告.md`。也可以单独检查：
 
 ```bash
 python3 exam-slayer-skill/scripts/validate_latex_markdown.py "/path/to/materials/__exam_slayer__"
@@ -159,6 +159,7 @@ exam-slayer-skill/
 │   ├── output_quality_gates.md
 │   └── question_type_playbooks.md
 └── scripts/
+    ├── output_names.py
     ├── ingest_materials.py
     ├── analyze_exam_frequency.py
     ├── build_slayer_pack.py

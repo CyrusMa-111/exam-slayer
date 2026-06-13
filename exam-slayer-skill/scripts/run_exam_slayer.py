@@ -8,6 +8,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from output_names import EXAM_PROFILE_JSON, EXTRACTED_TEXT_DIR, OUTPUT_DIR_NAME
+
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
@@ -20,7 +22,7 @@ def run(cmd: list[str]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Extract mixed files, analyze high-frequency topics, and build an Exam Slayer pack.")
     parser.add_argument("materials_dir", help="Folder containing PDFs, PPTX, DOCX, images, text files, past papers, syllabus, etc.")
-    parser.add_argument("--out", default=None, help="Output directory. Defaults to <materials_dir>/__exam_slayer__.")
+    parser.add_argument("--out", default=None, help=f"Output directory. Defaults to <materials_dir>/{OUTPUT_DIR_NAME}.")
     parser.add_argument("--time-budget", default="1 day", help="2 hours, 1 day, 3 days, or 1 week.")
     parser.add_argument("--target", default="pass", choices=["pass", "good", "high"], help="Target score strategy.")
     parser.add_argument("--render-pdf-pages", choices=["auto", "always", "never"], default="auto", help="Render PDF pages to PNG for vision review. Use always for formula/chart-heavy PDFs.")
@@ -30,8 +32,8 @@ def main() -> int:
     root = Path(args.materials_dir).resolve()
     if not root.is_dir():
         raise SystemExit(f"Directory not found: {root}")
-    out_dir = Path(args.out).resolve() if args.out else root / "__exam_slayer__"
-    extracted_dir = out_dir / "extracted_text"
+    out_dir = Path(args.out).resolve() if args.out else root / OUTPUT_DIR_NAME
+    extracted_dir = out_dir / EXTRACTED_TEXT_DIR
 
     run([
         sys.executable,
@@ -48,7 +50,7 @@ def main() -> int:
     run([
         sys.executable,
         str(SCRIPT_DIR / "build_slayer_pack.py"),
-        str(out_dir / "exam_profile.json"),
+        str(out_dir / EXAM_PROFILE_JSON),
         "--out",
         str(out_dir),
         "--time-budget",

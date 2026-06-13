@@ -11,7 +11,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_script(name: str):
-    path = ROOT / "exam-slayer-skill" / "scripts" / f"{name}.py"
+    scripts_dir = ROOT / "exam-slayer-skill" / "scripts"
+    path = scripts_dir / f"{name}.py"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
     spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
@@ -23,6 +26,8 @@ def load_script(name: str):
 analyzer = load_script("analyze_exam_frequency")
 builder = load_script("build_slayer_pack")
 latex_validator = load_script("validate_latex_markdown")
+output_names = load_script("output_names")
+ingest = load_script("ingest_materials")
 
 
 class AnalyzeExamFrequencyTests(unittest.TestCase):
@@ -61,7 +66,7 @@ class AnalyzeExamFrequencyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as report_tmp:
             out_dir = Path(report_tmp)
             analyzer.write_report(profile, out_dir)
-            report = (out_dir / "high_frequency_topics.md").read_text(encoding="utf-8")
+            report = (out_dir / output_names.HIGH_FREQUENCY_TOPICS_MD).read_text(encoding="utf-8")
             self.assertIn("合并词", report)
 
         topic_names = {topic["topic"] for topic in profile["topics"][:20]}
@@ -100,14 +105,14 @@ class AnalyzeExamFrequencyTests(unittest.TestCase):
             builder.build_flashcards(profile, out_dir, "1 day")
             builder.build_risk_report(profile, out_dir)
 
-            self.assertTrue((out_dir / "slayer_plan.md").exists())
-            self.assertTrue((out_dir / "quick_review.md").exists())
-            self.assertTrue((out_dir / "practice_answers.md").exists())
+            self.assertTrue((out_dir / output_names.SLAYER_PLAN_MD).exists())
+            self.assertTrue((out_dir / output_names.QUICK_REVIEW_MD).exists())
+            self.assertTrue((out_dir / output_names.PRACTICE_ANSWERS_MD).exists())
 
     def test_latex_validator_flags_unclosed_inline_math(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            path = root / "quick_review.md"
+            path = root / output_names.QUICK_REVIEW_MD
             path.write_text("错误公式：$(\\eta_1,\\eta_2,\\cdots,\\eta_n)x=\\alpha(\n", encoding="utf-8")
 
             issues = latex_validator.validate_file(path, root)
@@ -118,7 +123,7 @@ class AnalyzeExamFrequencyTests(unittest.TestCase):
     def test_latex_validator_accepts_display_math(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            path = root / "quick_review.md"
+            path = root / output_names.QUICK_REVIEW_MD
             path.write_text(
                 "正确公式：\n\n$$\n(\\eta_1, \\eta_2, \\cdots, \\eta_n)x = \\alpha\n$$\n",
                 encoding="utf-8",
@@ -127,6 +132,44 @@ class AnalyzeExamFrequencyTests(unittest.TestCase):
             issues = latex_validator.validate_file(path, root)
 
         self.assertEqual(issues, [])
+
+    def test_pipeline_artifacts_use_chinese_file_names(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "2024期末真题.txt").write_text(
+                "1. 请简述数据库事务的 ACID 特性，并说明隔离级别的作用。\n",
+                encoding="utf-8",
+            )
+            out_dir = root / output_names.OUTPUT_DIR_NAME
+            extracted_dir = out_dir / output_names.EXTRACTED_TEXT_DIR
+
+            manifest = ingest.ingest(root, extracted_dir)
+            ingest.write_summary(manifest, extracted_dir)
+            ingest.write_visual_review_queue(manifest, extracted_dir)
+
+            profile = analyzer.analyze(extracted_dir)
+            analyzer.write_report(profile, out_dir)
+            builder.build_slayer_plan(profile, out_dir, "1 day", "pass")
+            builder.build_quick_review(profile, out_dir, "1 day")
+            builder.build_practice(profile, out_dir, "1 day")
+            builder.build_flashcards(profile, out_dir, "1 day")
+            builder.build_risk_report(profile, out_dir)
+            latex_validator.write_report(out_dir, [])
+
+            expected = [
+                extracted_dir / output_names.INGEST_SUMMARY_MD,
+                extracted_dir / output_names.VISUAL_REVIEW_MD,
+                out_dir / output_names.HIGH_FREQUENCY_TOPICS_MD,
+                out_dir / output_names.SLAYER_PLAN_MD,
+                out_dir / output_names.QUICK_REVIEW_MD,
+                out_dir / output_names.PRACTICE_SET_MD,
+                out_dir / output_names.PRACTICE_ANSWERS_MD,
+                out_dir / output_names.FLASHCARDS_CSV,
+                out_dir / output_names.RISK_REPORT_MD,
+                out_dir / output_names.LATEX_VALIDATION_REPORT_MD,
+            ]
+            for path in expected:
+                self.assertTrue(path.exists(), path)
 
 
 if __name__ == "__main__":

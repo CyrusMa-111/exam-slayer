@@ -60,9 +60,9 @@ Layer 2: local OCR
 - OCR quality depends on scan clarity, language packs, handwriting, layout, and formulas.
 
 Layer 3: vision-capable model review
-- If the current model/tooling can inspect images or PDF pages, use it for files listed in `needs_visual_review.md`.
-- For PDF files that failed text extraction or contain important formulas/figures, inspect rendered page images under `__exam_slayer__/extracted_text/visual_assets/`.
-- Transcribe or summarize exam-relevant content into `__exam_slayer__/extracted_text/`, then rerun the analysis and Exam Slayer scripts.
+- If the current model/tooling can inspect images or PDF pages, use it for files listed in `需要视觉OCR复核.md`.
+- For PDF files that failed text extraction or contain important formulas/figures, inspect rendered page images under `__exam_slayer__/提取文本/视觉复核图片/`.
+- Transcribe or summarize exam-relevant content into `__exam_slayer__/提取文本/`, then rerun the analysis and Exam Slayer scripts.
 - For formulas and charts, capture meaning, variables, axes, trends, conclusions, and likely question forms; do not rely on plain OCR text alone.
 - For every recovered formula, output LaTeX plus variable meanings. Example:
   ```markdown
@@ -75,7 +75,7 @@ Layer 3: vision-capable model review
 
 Text-only model fallback:
 - If the active model cannot inspect images/PDF pages visually, do not claim those files were understood.
-- Tell the user which files need OCR or a vision-capable model, using `needs_visual_review.md` and `ingest_summary.md` as evidence.
+- Tell the user which files need OCR or a vision-capable model, using `需要视觉OCR复核.md` and `材料摄取报告.md` as evidence.
 
 Supported direct inputs:
 - Text-like: `.txt`, `.md`, `.markdown`, `.csv`, `.tsv`
@@ -83,17 +83,17 @@ Supported direct inputs:
 - PDF: `.pdf`
 - Images/OCR when local OCR tools exist: `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.bmp`, `.webp`
 
-PDF and image extraction depends on local tools and/or vision-capable models. Text-layer extraction often misses formulas, icons, diagrams, charts, and curves. If a scanned PDF, image, formula-heavy page, or complex slide cannot be read, report the file in `ingest_summary.md` and `needs_visual_review.md`. Do not pretend unreadable visual content was analyzed.
+PDF and image extraction depends on local tools and/or vision-capable models. Text-layer extraction often misses formulas, icons, diagrams, charts, and curves. If a scanned PDF, image, formula-heavy page, or complex slide cannot be read, report the file in `材料摄取报告.md` and `需要视觉OCR复核.md`. Do not pretend unreadable visual content was analyzed.
 
 Use step-by-step scripts only when debugging or when the user asks for manual control:
 
 ```bash
-python3 scripts/ingest_materials.py "<materials_dir>" --out "<materials_dir>/__exam_slayer__/extracted_text"
-python3 scripts/analyze_exam_frequency.py "<materials_dir>/__exam_slayer__/extracted_text" --out "<materials_dir>/__exam_slayer__"
-python3 scripts/build_slayer_pack.py "<materials_dir>/__exam_slayer__/exam_profile.json" --out "<materials_dir>/__exam_slayer__" --time-budget "1 day" --target "pass"
+python3 scripts/ingest_materials.py "<materials_dir>" --out "<materials_dir>/__exam_slayer__/提取文本"
+python3 scripts/analyze_exam_frequency.py "<materials_dir>/__exam_slayer__/提取文本" --out "<materials_dir>/__exam_slayer__"
+python3 scripts/build_slayer_pack.py "<materials_dir>/__exam_slayer__/考试画像.json" --out "<materials_dir>/__exam_slayer__" --time-budget "1 day" --target "pass"
 ```
 
-The extractor uses standard-library DOCX/PPTX parsing and optional local tools for PDF/OCR. Always review `ingest_summary.md` and `needs_visual_review.md` before trusting the final Exam Slayer pack.
+The extractor uses standard-library DOCX/PPTX parsing and optional local tools for PDF/OCR. Always review `材料摄取报告.md` and `需要视觉OCR复核.md` before trusting the final Exam Slayer pack.
 
 ## Material Priority
 
@@ -147,15 +147,17 @@ Produce only the artifacts useful for the user's time budget. Do not overproduce
 Default language: Chinese. If course materials are English, keep technical terms in English but explain and organize the review pack in Chinese.
 
 Recommended artifacts:
-- `ingest_summary.md`: what files were recognized, extracted, skipped, or failed.
-- `needs_visual_review.md`: files that need OCR, visual model review, or manual text export.
-- `extracted_text/visual_assets/`: rendered PDF page images for formula/chart/diagram review when enabled.
-- `slayer_plan.md`: time-boxed plan with what to study first.
-- `high_frequency_topics.md`: ranked high-yield concepts with evidence.
-- `quick_review.md`: compact notes, formulas, definitions, and answer templates.
-- `practice_set.md`: targeted questions from high-frequency areas.
-- `flashcards.csv`: optional Q/A cards for memorization.
-- `risk_report.md`: missing sources, low-confidence answers, conflicts, likely gaps.
+- `提取文本/材料摄取报告.md`: what files were recognized, extracted, skipped, or failed.
+- `提取文本/需要视觉OCR复核.md`: files that need OCR, visual model review, or manual text export.
+- `提取文本/视觉复核图片/`: rendered PDF page images for formula/chart/diagram review when enabled.
+- `期末突击复习计划.md`: time-boxed plan with what to study first.
+- `高频考点报告.md`: ranked high-yield concepts with evidence.
+- `考前速记稿.md`: compact notes, formulas, definitions, and answer templates.
+- `针对性练习题.md`: targeted questions from high-frequency areas.
+- `练习题答案与采分点.md`: practice answers and scoring points.
+- `闪卡.csv`: optional Q/A cards for memorization.
+- `风险报告.md`: missing sources, low-confidence answers, conflicts, likely gaps.
+- `LaTeX渲染检查报告.md`: Markdown LaTeX delimiter validation report.
 
 For answer-heavy subjects, include scoring points. For calculation subjects, include formula selection, common traps, and worked templates. For programming subjects, include pattern recognition, code tracing, complexity, and common implementation skeletons.
 
@@ -187,7 +189,7 @@ Use these conventions in generated study materials:
 - If a formula is uncertain because it came from OCR or visual recognition, mark it as `待核对`.
 - Do not flatten math into plain text such as `sum p log p` when LaTeX is possible.
 - Before delivering generated Markdown, run a quick LaTeX sanity pass: every `$`, `$$`, `\(`, `\)`, `\[`, and `\]` delimiter must be paired; do not leave raw LaTeX fragments outside math delimiters.
-- If using the scripts, run `python3 scripts/validate_latex_markdown.py "<materials_dir>/__exam_slayer__"` after building the pack. Fix any reported delimiter issues before giving the files to the user.
+- If using the scripts, run `python3 scripts/validate_latex_markdown.py "<materials_dir>/__exam_slayer__"` after building the pack. Fix any issues reported in `LaTeX渲染检查报告.md` before giving the files to the user.
 
 ## Subject-Agnostic Handling
 
@@ -206,7 +208,7 @@ For detailed playbooks, read `references/question_type_playbooks.md` only when n
 Before final delivery, check:
 
 - Every high-priority topic has evidence tags.
-- `needs_visual_review.md` has been handled or explicitly listed as a limitation.
+- `需要视觉OCR复核.md` has been handled or explicitly listed as a limitation.
 - Past-paper claims include year or source filename when available.
 - The plan matches the user's time budget.
 - Low-confidence content is labeled instead of presented as fact.

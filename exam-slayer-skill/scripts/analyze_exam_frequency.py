@@ -16,9 +16,25 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Iterable
 
+from output_names import (
+    EXAM_PROFILE_JSON,
+    HIGH_FREQUENCY_TOPICS_MD,
+    INGEST_MANIFEST_JSON,
+    INGEST_SUMMARY_MD,
+    OUTPUT_DIR_NAME,
+    VISUAL_REVIEW_MD,
+)
+
 
 TEXT_EXTENSIONS = {".txt", ".md", ".markdown", ".csv", ".tsv"}
-SKIP_FILENAMES = {"ingest_summary.md", "needs_visual_review.md", "ingest_manifest.json"}
+SKIP_FILENAMES = {
+    INGEST_SUMMARY_MD,
+    VISUAL_REVIEW_MD,
+    INGEST_MANIFEST_JSON,
+    "ingest_summary.md",
+    "needs_visual_review.md",
+    "ingest_manifest.json",
+}
 PAST_PAPER_HINTS = ("真题", "历年", "试卷", "past", "paper", "exam", "final", "midterm")
 SYLLABUS_HINTS = ("大纲", "题纲", "考纲", "范围", "syllabus", "outline", "scope")
 ANSWER_HINTS = ("答案", "解析", "answer", "solution", "key")
@@ -545,28 +561,28 @@ def write_report(profile: dict, out_dir: Path) -> None:
             lines.append(f"- {ev}")
         lines.append("")
 
-    (out_dir / "high_frequency_topics.md").write_text("\n".join(lines), encoding="utf-8")
+    (out_dir / HIGH_FREQUENCY_TOPICS_MD).write_text("\n".join(lines), encoding="utf-8")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Analyze high-frequency exam topics from extracted text materials.")
     parser.add_argument("materials_dir", help="Directory containing extracted text/Markdown materials.")
-    parser.add_argument("--out", default=None, help="Output directory. Defaults to <materials_dir>/__exam_slayer__.")
+    parser.add_argument("--out", default=None, help=f"Output directory. Defaults to <materials_dir>/{OUTPUT_DIR_NAME}.")
     args = parser.parse_args()
 
     root = Path(args.materials_dir).resolve()
     if not root.is_dir():
         raise SystemExit(f"Directory not found: {root}")
 
-    out_dir = Path(args.out).resolve() if args.out else root / "__exam_slayer__"
+    out_dir = Path(args.out).resolve() if args.out else root / OUTPUT_DIR_NAME
     out_dir.mkdir(parents=True, exist_ok=True)
 
     profile = analyze(root)
-    (out_dir / "exam_profile.json").write_text(json.dumps(profile, ensure_ascii=False, indent=2), encoding="utf-8")
+    (out_dir / EXAM_PROFILE_JSON).write_text(json.dumps(profile, ensure_ascii=False, indent=2), encoding="utf-8")
     write_report(profile, out_dir)
 
-    print(f"[OK] Wrote {out_dir / 'exam_profile.json'}")
-    print(f"[OK] Wrote {out_dir / 'high_frequency_topics.md'}")
+    print(f"[OK] Wrote {out_dir / EXAM_PROFILE_JSON}")
+    print(f"[OK] Wrote {out_dir / HIGH_FREQUENCY_TOPICS_MD}")
     return 0
 
 
